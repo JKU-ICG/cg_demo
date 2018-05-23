@@ -38,6 +38,7 @@ loadResources({
   texture_diffuse: '../textures/wood.png',
   texture_diffuse2: '../textures/checkerboard.jpg',
   texture_diffuse3: '../textures/brick.jpg',
+  texture_diffuse_aliasing: '../textures/debug_aliasing_512x512.png',
   model: '../models/C-3PO.obj',
   model2: '../models/teapot.obj'
 }).then(function (resources /*an object containing our keys with the loaded resources*/) {
@@ -62,7 +63,7 @@ function init(resources) {
 
 function createSceneGraph(gl, resources) {
 
-  textures = {checkerboard: resources.texture_diffuse2, wood: resources.texture_diffuse, brick: resources.texture_diffuse3};
+  textures = {checkerboard: resources.texture_diffuse2, wood: resources.texture_diffuse, brick: resources.texture_diffuse3, debug: resources.texture_diffuse_aliasing };
   models = {  none: [],
               c3po: [new RenderSGNode(resources.model)],
               teapot: [new TransformationSGNode(glm.transform({scale:[.1,.1,.1], translate:[0,.9,0]}), [new RenderSGNode(resources.model2)])] };
