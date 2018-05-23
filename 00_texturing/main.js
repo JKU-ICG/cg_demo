@@ -238,7 +238,7 @@ function initInteraction(canvas) {
 
 function toggleMipmapping(value){
 //enable/disable mipmapping
-gl.activeTexture(textureNode.textureunit);
+gl.activeTexture(gl.TEXTURE0 + textureNode.textureunit);
 gl.bindTexture(gl.TEXTURE_2D, textureNode.textureId);
 if(value)
 {
@@ -255,8 +255,16 @@ gl.bindTexture(gl.TEXTURE_2D, null);
 
 function toggleAnisotropicFiltering(value){
   //enable/disable anisotropic filtering (only visible in combination with mipmapping)
-  var ext = gl.getExtension("WEBKIT_EXT_texture_filter_anisotropic");
-  gl.activeTexture(textureNode.textureunit);
+  var ext = (
+    gl.getExtension('EXT_texture_filter_anisotropic') ||
+    gl.getExtension('MOZ_EXT_texture_filter_anisotropic') ||
+    gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic')
+  );
+  if(!ext){
+    console.log('Anisotropic filtering not supported!');
+    return;
+  }
+  gl.activeTexture(gl.TEXTURE0 + textureNode.textureunit);
   gl.bindTexture(gl.TEXTURE_2D, textureNode.textureId);
   if(value)
   {
