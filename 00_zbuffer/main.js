@@ -15,6 +15,7 @@ const camera = {
 var root = null;
 var rootUniform = null;
 var rootnofloor = null;
+var sphereUniformNode = null;
 var rotateLight;
 var rotateNode;
 
@@ -34,7 +35,8 @@ var globalSettings = function(){};
 globalSettings.useAnisotropicFiltering = true;
 globalSettings.useMipmapping = true;
 globalSettings.showZBuffer = false;
-globalSettings.numSpheres = 10;
+globalSettings.numSpheres = 0;
+globalSettings.transparentSpheres = false;
 globalSettings.animate = true;
 globalSettings.enableDepthTest = true;
 globalSettings.nearPlane = 2;
@@ -61,6 +63,9 @@ function init(resources) {
   else
     gl.disable(gl.DEPTH_TEST);
 
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
   //create scenegraph
   root = createSceneGraph(gl, resources);
 
@@ -74,6 +79,7 @@ function createSceneGraph(gl, resources) {
   //create scenegraph
   const root = new ShaderSGNode(createProgram(gl, resources.vs, resources.fs));
   rootUniform = new SetUniformSGNode( 'u_showDepth', globalSettings.showZBuffer );
+  rootUniform.uniforms['u_alpha'] = 1.0;
   root.append(rootUniform);
 
   //light debug helper function
@@ -116,7 +122,7 @@ function createSceneGraph(gl, resources) {
     floor.specular = [0.5, 0.5, 0.5, 1];
     floor.shininess = 50.0;
 
-    rootUniform.append(new TransformationSGNode(glm.transform({ translate: [0,-.00001,0], rotateX: -90, scale: 1}), [
+    rootUniform.append(new TransformationSGNode(glm.transform({ translate: [0,-.0001,0], rotateX: -90, scale: 1}), [
       floor
     ]));
   }
@@ -147,6 +153,9 @@ function createSceneGraph(gl, resources) {
     let sphereRadius = .4;
     let nxy_2 = 5;
     let countSpheres = 0;
+
+    sphereUniformNode = new SetUniformSGNode( 'u_alpha', 1.0); // globalSettings.alpha );
+    rootUniform.append(sphereUniformNode);
     
     for( let y = -nxy_2; y <= nxy_2; ++y )
     for( let x = -nxy_2; x <= nxy_2; ++x )
@@ -342,10 +351,10 @@ function increaseNumSpheres(){
 
 function updateSpheres(){
   for( let i = 0; i < sphereNodes.length; ++i ){  
-    rootUniform.remove(sphereNodes[i]);
+    sphereUniformNode.remove(sphereNodes[i]);
   }
   for( let i = 0; i < globalSettings.numSpheres; ++i ){  
-    rootUniform.append(sphereNodes[i]);
+    sphereUniformNode.append(sphereNodes[i]);
   }
 }
 
@@ -364,6 +373,14 @@ function initGUI(){
   gui.add( globalSettings, 'numSpheres', 0, sphereNodes.length  ).onChange(function(value){
     globalSettings.numSpheres = value;
     updateSpheres();
+  }).listen();
+
+  'transparentSpheres'
+  gui.add( globalSettings, 'transparentSpheres' ).onChange(function(value){
+    if(value)
+      sphereUniformNode.uniforms['u_alpha'] = .5;
+    else
+      sphereUniformNode.uniforms['u_alpha'] = 1.0;
   }).listen();
 
   gui.add( globalSettings, 'enableDepthTest' ).onChange(function(value){

@@ -35,6 +35,7 @@ varying vec4 v_worldPos;
 
 // other settings:
 uniform bool u_showDepth;
+uniform float u_alpha;
 
 //texture related variables
 varying vec2 v_texCoord;
@@ -81,6 +82,9 @@ void main (void) {
 
 	gl_FragColor = calculateSimplePointLight(u_light, u_material, v_lightVec, v_normalVec,
 			v_eyeVec, u_diffuseTexEnabled, diffuseTexColor );
+
+    if( u_alpha > 0.01)
+		gl_FragColor.a = u_alpha;
 
 	if(u_showDepth)
 	{
