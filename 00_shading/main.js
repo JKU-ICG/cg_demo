@@ -87,12 +87,13 @@ function createSceneGraph(gl, resources) {
     light.ambient = [0, 0, 0, 1];
     light.diffuse = [1, 1, 1, 1];
     light.specular = [1, 1, 1, 1];
-    light.position = [0, 2, 2];
+    light.position = [2, 2, -2];
     let lightDummy = (createLightSphere(light));
     light.append(lightDummy);
     rotateLight = new TransformationSGNode(mat4.create(), []);
     light.parent = rotateLight;
     light.enable = true;
+    light.animate = false;
     if(light.enable){
       rotateLight.append(light);
     }
@@ -111,6 +112,7 @@ function createSceneGraph(gl, resources) {
     rotateLight2 = new TransformationSGNode(mat4.create(), []);
     light2.parent = rotateLight2;
     light2.enable = true;
+    light2.animate = true;
     if(light2.enable){
       rotateLight2.append(light2);
     }
@@ -226,8 +228,8 @@ function render(timeInMilliseconds) {
   rotateNode.matrix = glm.rotateY(timeInMilliseconds*-0.01);
 
   // light rotation
-  rotateLight.matrix = glm.rotateY(timeInMilliseconds*0.05);
-  rotateLight2.matrix = glm.rotateY(-timeInMilliseconds*0.1);
+  if( light.animate )  rotateLight.matrix = glm.rotateY(timeInMilliseconds*0.05);
+  if( light2.animate ) rotateLight2.matrix = glm.rotateY(-timeInMilliseconds*0.1);
 
   root.render(context);
 
@@ -290,6 +292,10 @@ function createGuiLightFolder(gui,light_,name){
   flight.add(light_, 'enable').onChange(function(value){
     light_.enable = value;
     updateEnableLight(light_);
+  }).listen();
+  flight.add(light_, 'animate').onChange(function(value){
+    light_.animate = value;
+    //updateEnableLight(light_);
   }).listen();
   flight.addColor(tmplight, 'diffuse').onChange(function(value){
     light.diffuse = value.map(function(x){ return x/255; });
