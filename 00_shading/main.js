@@ -67,12 +67,12 @@ function createSceneGraph(gl, resources) {
   let phongProgramm = createProgram(gl, resources.vs, resources.fs);
   let blinnProgramm = createProgram(gl, resources.vs, resources.fs_blinn);
   let gouradProgramm = createProgram(gl, resources.vs_gouraud, resources.fs_gouraud);
-  shaders = { flat: flatProgramm, Gourad: gouradProgramm, Phong: phongProgramm, Blinn: blinnProgramm };
-  models = {  teapot: [new TransformationSGNode(glm.transform({scale:[.1,.1,.1], translate:[0,.9,0]}), [new RenderSGNode(resources.model2)])],
-              c3po: [new RenderSGNode(resources.model)],
+  shaders = { Phong: phongProgramm, Blinn: blinnProgramm, Gourad: gouradProgramm, flat: flatProgramm  };
+  models = {  c3po: [new RenderSGNode(resources.model)],
+              teapot: [new TransformationSGNode(glm.transform({scale:[.1,.1,.1], translate:[0,.9,0]}), [new RenderSGNode(resources.model2)])],
               sphere: [new TransformationSGNode(glm.transform({scale:[1,1,1], translate:[0,1,0]}), [new RenderSGNode(makeSphere(1,20,20)) ])]
            };
-  const root = new ShaderSGNode(flatProgramm);
+  const root = new ShaderSGNode(phongProgramm);
 
   function createLightSphere(light) {
     let material = new MaterialSGNode( new RenderSGNode(makeSphere(.2,10,10)) );
@@ -84,7 +84,7 @@ function createSceneGraph(gl, resources) {
   {
     // create white light node
     light = new LightSGNode();
-    light.ambient = [0, 0, 0, 1];
+    light.ambient = [1, 1, 1, 1];
     light.diffuse = [1, 1, 1, 1];
     light.specular = [1, 1, 1, 1];
     light.position = [2, 2, -2];
@@ -128,14 +128,16 @@ function createSceneGraph(gl, resources) {
     c3po.ambient = [0.24725, 0.1995, 0.0745, 1];
     c3po.diffuse = [0.75164, 0.60648, 0.22648, 1];
     c3po.specular = [0.628281, 0.555802, 0.366065, 1];
-    c3po.shininess = 50;
+    c3po.shininess = 0.4*128;
     c3po.lights = [light,light2];
+    // material properties: http://devernay.free.fr/cours/opengl/materials.html
 
     rotateNode = new TransformationSGNode(mat4.create(), [
-      new TransformationSGNode(glm.transform({ translate: [0,0, 0], rotateX : 0, scale: 0.8 }),  [
+      new TransformationSGNode(glm.transform({ translate: [0,0, 0], rotateY : 180, scale: 0.8 }),  [
         c3po
       ])
     ]);
+    rotateNode.animate = false;
     root.append(rotateNode);
   }
 
@@ -149,7 +151,7 @@ function createSceneGraph(gl, resources) {
     floor.ambient = [0, 0, 0, 1];
     floor.diffuse = [0.8, 0.8, 0.8, 1];
     floor.specular = [0.5, 0.5, 0.5, 1];
-    floor.shininess = 0.3;
+    floor.shininess = 2;
     floor.lights = [light,light2];
 
     root.append(new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateX: -90, scale: 2}), [
@@ -217,7 +219,7 @@ function render(timeInMilliseconds) {
   context.projectionMatrix = mat4.perspective(mat4.create(), fieldOfViewInRadians, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.01, 100);
 
   //ReCap: what does this mean?
-  context.viewMatrix = mat4.lookAt(mat4.create(), [0,3,-10], [0,0,0], [0,1,0]);
+  context.viewMatrix = mat4.lookAt(mat4.create(), [0,3,-8], [0,1,0], [0,1,0]);
 
   //rotate whole scene according to the mouse rotation stored in
   //camera.rotation.x and camera.rotation.y
@@ -225,7 +227,7 @@ function render(timeInMilliseconds) {
                             glm.rotateY(camera.rotation.x),
                             glm.rotateX(camera.rotation.y));
 
-  rotateNode.matrix = glm.rotateY(timeInMilliseconds*-0.01);
+  if( rotateNode.animate ) rotateNode.matrix = glm.rotateY(timeInMilliseconds*-0.01);
 
   // light rotation
   if( light.animate )  rotateLight.matrix = glm.rotateY(timeInMilliseconds*0.05);
@@ -260,6 +262,7 @@ function initGUI(){
   gui.add( tmpModel, 'model', Object.keys(models) ).onChange(function(value){
     c3po.children = models[value];
   });
+  gui.add( rotateNode, 'animate' ).listen();
 
   //gui.closed = true; // close gui to avoid using up too much screen
 
@@ -280,6 +283,25 @@ function updateEnableLight( light_ ){
     light_.ambient=[0,0,0,0];
     //console.log('remove light');
   }
+}
+
+function initMaterialTemplates(){
+  // values from: http://devernay.free.fr/cours/opengl/materials.html
+  // ambient, diffuse, specular
+  // pearl 	0.25 	0.20725 	0.20725 	1 	0.829 	0.829 	0.296648 	0.296648 	0.296648 	0.088
+  // green plastic 	0.0 	0.0 	0.0 	0.1 	0.35 	0.1 	0.45 	0.55 	0.45 	.25
+  // gold 	0.24725 	0.1995 	0.0745 	0.75164 	0.60648 	0.22648 	0.628281 	0.555802 	0.366065 	0.4
+  // chrome 	0.25 	0.25 	0.25 	0.4 	0.4 	0.4 	0.774597 	0.774597 	0.774597 	0.6
+  // yellow rubber 	0.05 	0.05 	0.0 	0.5 	0.5 	0.4 	0.7 	0.7 	0.04 	.078125
+  let materialPresets = {
+    gold: {ambient: [	0.24725, 	0.1995, 	0.0745 , 1], diffuse: [0.75164, 	0.60648, 	0.22648, 1], specular: [	0.628281, 	0.555802, 	0.366065, 1], shininess:  0.4 * 128 }, 
+    pearl: {ambient: [0.25, 	0.20725, 	0.20725, 1], diffuse: [1, 	0.829, 	0.829, 1], specular: [	0.829, 	0.296648,	0.296648, 1], shininess:  0.088 * 128 }, 
+    green_plastic: {ambient: [0.0, 	0.0, 	0.0, 1], diffuse: [0.1, 	0.35, 	0.1, 1], specular: [0.45, 	0.55, 	0.45, 1], shininess:  .25 * 128 },
+    yellow_rubber: {ambient: [		0.05, 	0.05, 	0.0 , 1], diffuse: [0.5, 	0.5, 	0.4 , 1], specular: [		0.7, 	0.7, 	0.04 , 1], shininess:  .078125 * 128 },
+    chrome: {ambient: [		0.25, 	0.25, 	0.25 , 1], diffuse: [	0.4, 	0.4, 	0.4, 1], specular: [	0.774597, 	0.774597, 	0.774597, 1], shininess:  0.6 * 128 }
+  };
+
+  return materialPresets;
 }
 
 function createGuiLightFolder(gui,light_,name){
@@ -319,19 +341,44 @@ function createGuiMaterialFolder(gui,material,name){
   tmpmaterial.diffuse = material.diffuse.map(function(x){ return x*255; });
   tmpmaterial.specular = material.specular.map(function(x){ return x*255; });
   tmpmaterial.emission = material.emission.map(function(x){ return x*255; });
+  material.tmp = tmpmaterial;
   let folder = gui.addFolder(name);
-  folder.addColor(tmpmaterial, 'diffuse').onChange(function(value){
+  folder.addColor(tmpmaterial, 'diffuse').onFinishChange(function(value){
     material.diffuse = value.map(function(x){ return x/255; });
-  });
-  folder.addColor(tmpmaterial, 'specular').onChange(function(value){
+  }).listen();
+  folder.addColor(tmpmaterial, 'specular').onFinishChange(function(value){
     material.specular = value.map(function(x){ return x/255; });
-  });
-  folder.addColor(tmpmaterial, 'ambient').onChange(function(value){
+  }).listen();
+  folder.addColor(tmpmaterial, 'ambient').onFinishChange(function(value){
     material.ambient = value.map(function(x){ return x/255; });
-  });
-  folder.addColor(tmpmaterial, 'emission').onChange(function(value){
+  }).listen();
+  folder.addColor(tmpmaterial, 'emission').onFinishChange(function(value){
     material.emission = value.map(function(x){ return x/255; });
+  }).listen();
+  folder.add(material,'shininess', 1, 512).listen(); // = 0.0;
+
+  material.tmp.materialPresets = initMaterialTemplates();
+  material.tmp.preset = '';
+  //console.log(material.tmp.materialPresets);
+  folder.add( material.tmp, 'preset', Object.keys(tmpmaterial.materialPresets) ).onChange(function(value){
+    let materialPreset = material.tmp.materialPresets[value];
+    //console.log(value);
+    //console.log(materialPreset);
+    material.ambient = materialPreset.ambient;
+    material.diffuse = materialPreset.diffuse;
+    material.specular = materialPreset.specular;
+    material.shininess = materialPreset.shininess;
+
+    updateGuiMaterial(material);
+    // make sure it is vec4
   });
-  folder.add(material,'shininess', 0,100); // = 0.0;
+
+  function updateGuiMaterial(material){
+    material.tmp.ambient = material.ambient.map(function(x){ return x*255; });
+    material.tmp.diffuse = material.diffuse.map(function(x){ return x*255; });
+    material.tmp.specular = material.specular.map(function(x){ return x*255; });
+    material.tmp.shininess = material.shininess; //.map(function(x){ return x*255; });
+  }
+
   return folder;
 }
