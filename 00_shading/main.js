@@ -320,17 +320,17 @@ function createGuiLightFolder(gui,light_,name){
     //updateEnableLight(light_);
   }).listen();
   flight.addColor(tmplight, 'diffuse').onChange(function(value){
-    light.diffuse = value.map(function(x){ return x/255; });
+    light_.diffuse = value.map(function(x){ return x/255; });
   });
   flight.addColor(tmplight, 'specular').onChange(function(value){
-    light.specular = value.map(function(x){ return x/255; });
+    light_.specular = value.map(function(x){ return x/255; });
   });
   flight.addColor(tmplight, 'ambient').onChange(function(value){
-    light.ambient = value.map(function(x){ return x/255; });
+    light_.ambient = value.map(function(x){ return x/255; });
   });
   tmplight.position = light.position.toString();
   flight.add(tmplight, 'position').onChange(function(value){
-    light.position = JSON.parse("[" + value + "]");
+    light_.position = JSON.parse("[" + value + "]");
   });
   return flight;
 }
